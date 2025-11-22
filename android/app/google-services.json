@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "1043492351226",
+    "project_id": "cookingcompaniondb",
+    "storage_bucket": "cookingcompaniondb.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1043492351226:android:584996925ea4733393ad43",
+        "android_client_info": {
+          "package_name": "com.example.cookingcompanion"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAUeTTwbY78fgFFqWJ5DDnXUfAX8RWKsME"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1043492351226:android:ec18e6bcf667c55693ad43",
+        "android_client_info": {
+          "package_name": "com.example.recipenook"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAUeTTwbY78fgFFqWJ5DDnXUfAX8RWKsME"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
