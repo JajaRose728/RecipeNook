@@ -4,7 +4,7 @@ RecipeNook is a Flutter app that allows users to create, view, and manage their 
 
 ## Features
 
-- Add, edit, and delete recipes
+- Add, edit, view and delete recipes
 - View public recipes and your own recipes separately
 - Clean and responsive Flutter UI
 - Firebase/Firestore integration for real-time updates
