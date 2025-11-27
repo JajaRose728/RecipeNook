@@ -4,6 +4,28 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/recipe_service.dart';
 import 'edit_recipe_page.dart';
+import '../constants.dart';
+
+// Color palette matching login screen
+const _colorCreamBackground = Color(0xFFF0D597);
+const _colorCardBeige = Color(0xFFE9DDCB);
+const _colorDarkGreen = Color(0xFF4F6D44);
+const _colorButtonGreen = Color(0xFFA8C67B);
+const _colorInputText = Color(0xFF6A5A69);
+const _colorWhite = Colors.white;
+const _colorTitlePop = Color(0xFFC9B186); // slightly pop for title
+
+// Category colors matching HomePage
+const Map<String, Color> categoryColors = {
+  'All': _colorCardBeige,
+  'Breakfast': Color(0xFFFFD580), // Light Orange
+  'Lunch': Color(0xFF90CAF9),     // Light Blue
+  'Dinner': Color(0xFF81C784),    // Light Green
+  'Dessert': Color(0xFFF48FB1),   // Pink
+  'Snack': Color(0xFFFFF176),     // Yellow
+  'Beverage': Color(0xFFCE93D8),  // Purple
+  'Other': _colorCardBeige,
+};
 
 class RecipeDetailPage extends StatelessWidget {
   final String recipeId;
@@ -26,14 +48,10 @@ class RecipeDetailPage extends StatelessWidget {
     );
   }
 
-  // --------------------------
-  // Helper: safely parse ingredients/steps
-  // --------------------------
   List<String> parseList(dynamic value) {
     if (value == null) return [];
     if (value is List) return value.map((e) => e.toString()).toList();
     if (value is String) {
-      // Split by new lines or commas if needed
       return value.split('\n').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
     }
     return [];
@@ -41,18 +59,18 @@ class RecipeDetailPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const Color headerColor = Color(0xFFE9DDCB);
-    const Color lightBoxColor = Color(0xFFF7F1EC);
-    const Color dottedColor = Colors.white;
-
     return Scaffold(
-      backgroundColor: const Color(0xFFFDF9F5),
+      backgroundColor: _colorCreamBackground,
       appBar: AppBar(
-        backgroundColor: headerColor,
+        backgroundColor: _colorCardBeige,
         iconTheme: const IconThemeData(color: Colors.black),
-        title: const Text(
+        title: Text(
           "Recipe Detail",
-          style: TextStyle(color: Colors.black),
+          style: GoogleFonts.montserrat(
+            color: _colorDarkGreen,
+            fontWeight: FontWeight.bold,
+            fontSize: 22,
+          ),
         ),
       ),
       body: StreamBuilder<DocumentSnapshot>(
@@ -89,27 +107,50 @@ class RecipeDetailPage extends StatelessWidget {
                     ),
                   const SizedBox(height: 20),
 
-                  // Title with dotted border
+                  // Title with dotted border & green background
                   DottedBorder(
-                    color: dottedColor,
+                    color: _colorWhite,
                     strokeWidth: 2,
                     dashPattern: const [6, 3],
                     borderType: BorderType.RRect,
                     radius: const Radius.circular(14),
                     child: Container(
-                      width: double.infinity,
                       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
-                      color: headerColor,
+                      decoration: BoxDecoration(
+                        color: _colorDarkGreen, // green background
+                        borderRadius: BorderRadius.circular(14),
+                      ),
                       child: Text(
                         recipe['title'] ?? '',
                         textAlign: TextAlign.center,
                         style: GoogleFonts.cookie(
-                          fontSize: 42,
-                          color: Colors.black,
+                          fontSize: 48,
+                          color: _colorWhite,
                         ),
                       ),
                     ),
                   ),
+
+                  const SizedBox(height: 12),
+
+                  // Category badge with color from mapping
+                  if (recipe['category'] != null && recipe['category'] != '')
+                    Container(
+                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: categoryColors[recipe['category']] ?? _colorButtonGreen,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        recipe['category'],
+                        style: GoogleFonts.montserrat(
+                          fontSize: 18,
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
                   const SizedBox(height: 22),
 
                   // Edit & Delete buttons (only owner)
@@ -119,10 +160,10 @@ class RecipeDetailPage extends StatelessWidget {
                       children: [
                         ElevatedButton.icon(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.black,
+                            backgroundColor: _colorDarkGreen,
                           ),
-                          icon: const Icon(Icons.edit),
-                          label: const Text("Edit"),
+                          icon: const Icon(Icons.edit, color: _colorWhite),
+                          label: const Text("Edit", style: TextStyle(color: _colorWhite)),
                           onPressed: () {
                             Navigator.push(
                               context,
@@ -140,8 +181,8 @@ class RecipeDetailPage extends StatelessWidget {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.redAccent,
                           ),
-                          icon: const Icon(Icons.delete),
-                          label: const Text("Delete"),
+                          icon: const Icon(Icons.delete, color: _colorWhite),
+                          label: const Text("Delete", style: TextStyle(color: _colorWhite)),
                           onPressed: () async {
                             bool confirmed = await showDialog(
                               context: context,
@@ -171,18 +212,21 @@ class RecipeDetailPage extends StatelessWidget {
                   if (isOwner(recipe)) const SizedBox(height: 20),
 
                   // Info Boxes
-                  buildInfoBox(title: "Description", content: recipe['description'] ?? '', boxColor: lightBoxColor),
-                  buildInfoBox(title: "Category", content: recipe['category'] ?? '', boxColor: lightBoxColor),
+                  buildInfoBox(
+                      title: "Description",
+                      content: recipe['description'] ?? '',
+                      boxColor: _colorCardBeige,
+                      fontSize: 18),
                   buildListBox(
-                    title: "Ingredients",
-                    items: parseList(recipe['ingredients']).map((e) => "• $e").toList(),
-                    boxColor: lightBoxColor,
-                  ),
+                      title: "Ingredients",
+                      items: parseList(recipe['ingredients']).map((e) => "• $e").toList(),
+                      boxColor: _colorCardBeige,
+                      fontSize: 18),
                   buildListBox(
-                    title: "Steps",
-                    items: parseList(recipe['steps']).map((e) => "• $e").toList(),
-                    boxColor: lightBoxColor,
-                  ),
+                      title: "Steps",
+                      items: parseList(recipe['steps']).map((e) => "• $e").toList(),
+                      boxColor: _colorCardBeige,
+                      fontSize: 18),
                 ],
               ),
             ),
@@ -196,6 +240,7 @@ class RecipeDetailPage extends StatelessWidget {
     required String title,
     required String content,
     required Color boxColor,
+    double fontSize = 16,
   }) {
     return Container(
       width: double.infinity,
@@ -209,9 +254,13 @@ class RecipeDetailPage extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(title,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 6),
-          Text(content),
+              style: TextStyle(
+                  fontSize: fontSize,
+                  fontWeight: FontWeight.bold,
+                  color: _colorDarkGreen)),
+          const SizedBox(height: 8),
+          Text(content,
+              style: TextStyle(fontSize: fontSize, color: _colorInputText)),
         ],
       ),
     );
@@ -221,6 +270,7 @@ class RecipeDetailPage extends StatelessWidget {
     required String title,
     required List<String> items,
     required Color boxColor,
+    double fontSize = 16,
   }) {
     return Container(
       width: double.infinity,
@@ -234,9 +284,13 @@ class RecipeDetailPage extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(title,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 6),
-          ...items.map((i) => Text(i)).toList(),
+              style: TextStyle(
+                  fontSize: fontSize,
+                  fontWeight: FontWeight.bold,
+                  color: _colorDarkGreen)),
+          const SizedBox(height: 8),
+          ...items.map((i) => Text(i,
+              style: TextStyle(fontSize: fontSize, color: _colorInputText))).toList(),
         ],
       ),
     );

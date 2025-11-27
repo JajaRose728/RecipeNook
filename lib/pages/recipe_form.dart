@@ -5,16 +5,20 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../services/recipe_service.dart';
 import '../services/storage_service.dart';
+import '../constants.dart';
 
-// --- COLORS ---
-const Color _colorCreamBackground = Color(0xFFFFEDBF);
-const Color _colorCardBeige = Color(0xFFFFCD74);
-const Color _colorAccent = Color(0xFF9B2948);
-const Color _colorInputText = Color(0xFF6A5A69);
+// Color palette
+const _colorCreamBackground = Color(0xFFF0D597);
+const _colorCardBeige = Color(0xFFE9DDCB);
+const _colorDarkGreen = Color(0xFF4F6D44);
+const _colorButtonGreen = Color(0xFFA8C67B);
+const _colorInputText = Color(0xFF6A5A69);
+const _colorWhite = Colors.white;
+const _colorAccent = _colorDarkGreen; // Focus/border color
 
 class RecipeForm extends StatefulWidget {
   final String currentUsername;
-  final Map<String, dynamic>? initialData; // null for create
+  final Map<String, dynamic>? initialData;
   final Future<void> Function(Map<String, dynamic> data) onSubmit;
   final bool isEdit;
 
@@ -34,35 +38,50 @@ class _RecipeFormState extends State<RecipeForm> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _titleController;
   late TextEditingController _descController;
-  late TextEditingController _categoryController;
   late TextEditingController _ingredientsController;
   late TextEditingController _stepsController;
 
   File? _imageFile;
   Uint8List? _imageBytes;
-  final ImagePicker _picker = ImagePicker();
 
+  final ImagePicker _picker = ImagePicker();
   final StorageService _storageService = StorageService();
 
   bool loading = false;
 
+  // Category list
+  final List<String> _categories = [
+    "Breakfast",
+    "Lunch",
+    "Dinner",
+    "Snacks",
+    "Dessert",
+    "Beverage",
+    "Other",
+  ];
+
+  String? _selectedCategory;
+
   @override
   void initState() {
     super.initState();
+
     _titleController =
         TextEditingController(text: widget.initialData?['title'] ?? '');
     _descController =
         TextEditingController(text: widget.initialData?['description'] ?? '');
-    _categoryController =
-        TextEditingController(text: widget.initialData?['category'] ?? '');
     _ingredientsController = TextEditingController(
         text: widget.initialData?['ingredients']?.join('\n') ?? '');
     _stepsController = TextEditingController(
         text: widget.initialData?['steps']?.join('\n') ?? '');
+
+    // Pre-select category if editing
+    _selectedCategory = widget.initialData?['category'] ?? null;
   }
 
   Future<void> _pickImage() async {
     final picked = await _picker.pickImage(source: ImageSource.gallery);
+
     if (picked != null) {
       if (kIsWeb) {
         final bytes = await picked.readAsBytes();
@@ -75,6 +94,12 @@ class _RecipeFormState extends State<RecipeForm> {
 
   Future<void> _handleSubmit() async {
     if (!_formKey.currentState!.validate()) return;
+    if (_selectedCategory == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please select a category.")),
+      );
+      return;
+    }
 
     setState(() => loading = true);
 
@@ -82,11 +107,15 @@ class _RecipeFormState extends State<RecipeForm> {
 
     try {
       if (_imageBytes != null) {
-        imageUrl =
-        await _storageService.uploadBytes(_imageBytes!, widget.currentUsername);
+        imageUrl = await _storageService.uploadBytes(
+          _imageBytes!,
+          widget.currentUsername,
+        );
       } else if (_imageFile != null) {
-        imageUrl =
-        await _storageService.uploadImage(_imageFile!, widget.currentUsername);
+        imageUrl = await _storageService.uploadImage(
+          _imageFile!,
+          widget.currentUsername,
+        );
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -99,7 +128,7 @@ class _RecipeFormState extends State<RecipeForm> {
     final data = {
       'title': _titleController.text.trim(),
       'description': _descController.text.trim(),
-      'category': _categoryController.text.trim(),
+      'category': _selectedCategory!,
       'ingredients': _ingredientsController.text.trim().split('\n'),
       'steps': _stepsController.text.trim().split('\n'),
       'imageUrl': imageUrl,
@@ -108,16 +137,17 @@ class _RecipeFormState extends State<RecipeForm> {
     };
 
     await widget.onSubmit(data);
-
     if (mounted) Navigator.pop(context);
   }
 
-  Widget _buildInputField(
-      {required TextEditingController controller,
-        required String labelText,
-        int maxLines = 1}) {
+  // Styled beige input field
+  Widget _buildInputField({
+    required TextEditingController controller,
+    required String labelText,
+    int maxLines = 1,
+  }) {
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 8),
+      margin: const EdgeInsets.symmetric(vertical: 10),
       child: TextFormField(
         controller: controller,
         maxLines: maxLines,
@@ -125,9 +155,11 @@ class _RecipeFormState extends State<RecipeForm> {
         validator: (v) => v!.isEmpty ? 'Please enter $labelText' : null,
         decoration: InputDecoration(
           labelText: labelText,
+          labelStyle: const TextStyle(color: _colorInputText),
           filled: true,
-          fillColor: Colors.white,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+          fillColor: _colorCardBeige,
+          contentPadding:
+          const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(30),
             borderSide: BorderSide(color: _colorInputText.withOpacity(0.4)),
@@ -145,90 +177,144 @@ class _RecipeFormState extends State<RecipeForm> {
     );
   }
 
+  // Styled beige dropdown
+  Widget _buildCategoryDropdown() {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      decoration: BoxDecoration(
+        color: _colorCardBeige,
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(color: _colorInputText.withOpacity(0.4)),
+      ),
+      child: DropdownButtonFormField<String>(
+        value: _selectedCategory,
+        dropdownColor: _colorCardBeige,
+        decoration: const InputDecoration(
+          border: InputBorder.none,
+          labelText: "Category",
+          labelStyle: TextStyle(color: _colorInputText),
+        ),
+        icon: const Icon(Icons.arrow_drop_down, color: _colorInputText),
+        items: _categories
+            .map((cat) => DropdownMenuItem(
+          value: cat,
+          child: Text(
+            cat,
+            style: const TextStyle(color: _colorInputText),
+          ),
+        ))
+            .toList(),
+        onChanged: (val) => setState(() => _selectedCategory = val),
+        validator: (value) =>
+        value == null ? "Please select a category" : null,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Form(
-        key: _formKey,
-        child: Column(
-          children: [
-            GestureDetector(
-              onTap: _pickImage,
-              child: kIsWeb
-                  ? Container(
-                height: 180,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: _imageBytes != null
-                    ? Image.memory(_imageBytes!, fit: BoxFit.cover)
-                    : (widget.initialData?['imageUrl'] != null &&
-                    widget.initialData!['imageUrl'] != '')
-                    ? Image.network(widget.initialData!['imageUrl'],
-                    fit: BoxFit.cover)
-                    : const Icon(Icons.add_a_photo,
-                    size: 50, color: Colors.white),
-              )
-                  : _imageFile != null
-                  ? ClipRRect(
-                borderRadius: BorderRadius.circular(20),
-                child: Image.file(_imageFile!,
-                    height: 180, width: double.infinity, fit: BoxFit.cover),
-              )
-                  : (widget.initialData?['imageUrl'] != null &&
-                  widget.initialData!['imageUrl'] != '')
-                  ? ClipRRect(
-                borderRadius: BorderRadius.circular(20),
-                child: Image.network(widget.initialData!['imageUrl'],
-                    height: 180, width: double.infinity, fit: BoxFit.cover),
-              )
-                  : Container(
-                height: 180,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: const Icon(Icons.add_a_photo,
-                    size: 50, color: Colors.white),
-              ),
-            ),
-            const SizedBox(height: 16),
-            _buildInputField(controller: _titleController, labelText: "Title"),
-            _buildInputField(controller: _descController, labelText: "Description"),
-            _buildInputField(controller: _categoryController, labelText: "Category"),
-            _buildInputField(
-                controller: _ingredientsController,
-                labelText: "Ingredients (one per line)",
-                maxLines: 3),
-            _buildInputField(
-                controller: _stepsController,
-                labelText: "Steps (one per line)",
-                maxLines: 3),
-            const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              height: 55,
-              child: ElevatedButton(
-                onPressed: loading ? null : _handleSubmit,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _colorAccent,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                  elevation: 6,
-                ),
-                child: loading
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : Text(
-                  widget.isEdit ? "Update Recipe" : "Save Recipe",
-                  style: const TextStyle(
-                      fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+    return Container(
+      color: _colorCreamBackground,
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+      child: SingleChildScrollView(
+        child: Form(
+          key: _formKey,
+          child: Column(
+            children: [
+              GestureDetector(
+                onTap: _pickImage,
+                child: Container(
+                  height: 180,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: _colorCardBeige,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: _imageBytes != null
+                      ? ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: Image.memory(_imageBytes!, fit: BoxFit.cover),
+                  )
+                      : _imageFile != null
+                      ? ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: Image.file(
+                      _imageFile!,
+                      height: 180,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                    ),
+                  )
+                      : (widget.initialData?['imageUrl'] != null &&
+                      widget.initialData!['imageUrl'] != '')
+                      ? ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: Image.network(
+                      widget.initialData!['imageUrl'],
+                      height: 180,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                    ),
+                  )
+                      : const Icon(
+                    Icons.add_a_photo,
+                    size: 50,
+                    color: _colorWhite,
+                  ),
                 ),
               ),
-            ),
-          ],
+              const SizedBox(height: 20),
+
+              // Inputs
+              _buildInputField(controller: _titleController, labelText: "Title"),
+              _buildInputField(
+                  controller: _descController, labelText: "Description"),
+
+              // CATEGORY DROPDOWN
+              _buildCategoryDropdown(),
+
+              _buildInputField(
+                  controller: _ingredientsController,
+                  labelText: "Ingredients (one per line)",
+                  maxLines: 3),
+              _buildInputField(
+                  controller: _stepsController,
+                  labelText: "Steps (one per line)",
+                  maxLines: 3),
+
+              const SizedBox(height: 25),
+
+              SizedBox(
+                width: double.infinity,
+                height: 55,
+                child: ElevatedButton(
+                  onPressed: loading ? null : _handleSubmit,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _colorButtonGreen,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                    elevation: 6,
+                  ),
+                  child: loading
+                      ? const CircularProgressIndicator(color: _colorWhite)
+                      : Text(
+                    widget.isEdit
+                        ? "Update Recipe"
+                        : "Save Recipe",
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: _colorWhite,
+                    ),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 20),
+            ],
+          ),
         ),
       ),
     );
